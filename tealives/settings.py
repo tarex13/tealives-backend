@@ -14,7 +14,7 @@ from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+IS_RENDER = os.environ.get("RENDER") == "true" and os.environ.get("CI") is None
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -23,9 +23,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-aimv!0jr)jj(ksw=#^w6x^b%+bk&&(7*34&0!tk_#kb9sfs%_q'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
-
-ALLOWED_HOSTS = []
+if IS_RENDER:
+    ALLOWED_HOSTS = ['.onrender.com']
+    Debug = False
+    SECURE_SSL_REDIRECT = True
+else:
+    ALLOWED_HOSTS = ['*']
+    Debug = True
 
 
 # Application definition

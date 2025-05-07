@@ -10,6 +10,8 @@ dj-database-url==2.3.0
 Django==5.1.5
 django-cloudinary-storage==0.3.0
 djangorestframework
+django-cors-headers
+djangorestframework-simplejwt
 filelock==3.17.0
 Flask==3.1.0
 git-filter-repo==2.47.0
