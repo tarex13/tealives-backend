@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 import os
 from pathlib import Path
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -28,9 +29,24 @@ if IS_RENDER:
     ALLOWED_HOSTS = ['.onrender.com', '.vercel.app']
     Debug = False
     SECURE_SSL_REDIRECT = True
+    DATABASES = {
+    'default': dj_database_url.config(
+        default=os.getenv("DATABASE_URL"),
+        conn_max_age=600,  # keeps DB connections open for reuse
+        ssl_require=True   # important for Supabase (uses SSL)
+    )
+}
+    
 else:
     ALLOWED_HOSTS = ['*']
     Debug = True
+    
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Application definition
@@ -84,12 +100,6 @@ WSGI_APPLICATION = 'tealives.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
 
 
 # Password validation
