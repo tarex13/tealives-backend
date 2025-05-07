@@ -66,7 +66,7 @@ class ReportCreateView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        serializer.save(reported_by=self.request.user)
+        serializer.save(reported_by=self.request.user, city=self.request.user.city or self.request.data.get("city"))
 
 class MessageListCreateView(generics.ListCreateAPIView):
     serializer_class = MessageSerializer
@@ -77,7 +77,7 @@ class MessageListCreateView(generics.ListCreateAPIView):
         return Message.objects.filter(sender=user) | Message.objects.filter(recipient=user)
 
     def perform_create(self, serializer):
-        serializer.save(sender=self.request.user)
+        serializer.save(sender=self.request.user, city=self.request.user.city or self.request.data.get("city"))
 
 class ReportActionView(APIView):
     permission_classes = [IsModerator]
@@ -175,7 +175,10 @@ class MarketplaceItemListCreateView(generics.ListCreateAPIView):
         return MarketplaceItem.objects.filter(status='available')
 
     def perform_create(self, serializer):
-        serializer.save(seller=self.request.user)
+           serializer.save(
+        user=self.request.user,
+        city=self.request.user.city or self.request.data.get("city")
+    )
 
 class SwappOfferUpdateView(generics.UpdateAPIView):
     queryset = SwappOffer.objects.all()
@@ -197,8 +200,8 @@ class SwappOfferCreateView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     
 
-    def perform_create(self, serializer):
-        offer = serializer.save(offered_by=self.request.user)
+    def perform_create(self, serializer):  
+        offer = serializer.save(offered_by=self.request.user, city=self.request.user.city or self.request.data.get("city"))
         award_xp(self.request.user, 10)
 
 User = get_user_model()
@@ -284,6 +287,6 @@ class FeedbackCreateView(CreateAPIView):
 
     def perform_create(self, serializer):
         if self.request.user.is_authenticated:
-            serializer.save(user=self.request.user)
+            serializer.save(user=self.request.user, city=self.request.user.city or self.request.data.get("city"))
         else:
             serializer.save()

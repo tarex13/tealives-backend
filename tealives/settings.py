@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-aimv!0jr)jj(ksw=#^w6x^b%+bk&&(7*34&0!tk_#kb9sfs%_q
 
 # SECURITY WARNING: don't run with debug turned on in production!
 if IS_RENDER:
-    ALLOWED_HOSTS = ['.onrender.com']
+    ALLOWED_HOSTS = ['.onrender.com', '.vercel.app']
     Debug = False
     SECURE_SSL_REDIRECT = True
 else:
@@ -142,3 +142,4 @@ REST_FRAMEWORK = {
 }
 
 CORS_ALLOW_ALL_ORIGINS = True  # for dev only!
+#IN Production
