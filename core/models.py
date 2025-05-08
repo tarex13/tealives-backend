@@ -17,6 +17,10 @@ class User(AbstractUser):
     is_business = models.BooleanField(default=False)
     is_moderator = models.BooleanField(default=False)
     xp = models.IntegerField(default=0)
+    bio = models.TextField(blank=True)
+    profile_image = models.ImageField(upload_to='profile/')
+    saved_listings = models.ManyToManyField('MarketplaceItem', blank=True, related_name='saved_by_users')
+
 
     def __str__(self):
         return self.username
@@ -58,7 +62,7 @@ class Post(models.Model):
         ('question', 'Question'),
         ('rant', 'Rant'),
     ]
-
+    reactions = models.JSONField(default=dict)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='posts')
     title = models.CharField(max_length=255)
     content = models.TextField()
@@ -79,10 +83,22 @@ class Event(models.Model):
     city = models.CharField(max_length=50)
     is_public = models.BooleanField(default=True)
     rsvps = models.ManyToManyField(User, related_name='rsvped_events', blank=True)
-
+    rsvp_limit = models.PositiveIntegerField(null=True, blank=True)
+    show_countdown = models.BooleanField(default=False)
     def __str__(self):
         return f"{self.title} in {self.city} on {self.datetime}"
     
+    
+# models.py
+class Reaction(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    post = models.ForeignKey('Post', on_delete=models.CASCADE, related_name='reactions')
+    emoji = models.CharField(max_length=10)  # e.g. "👍", "🔥", etc.
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'post', 'emoji')  # Prevent duplicate reactions
+        
 class MarketplaceItem(models.Model):
     CONDITION_CHOICES = [
         ('new', 'New'),
@@ -162,6 +178,17 @@ class Notification(models.Model):
 
     def __str__(self):
         return f'Notification for {self.user.username}: {self.content}'
+
+class Comment(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    anonymous = models.BooleanField(default=False)
+    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='replies')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Comment by {'Anon' if self.anonymous else self.user.username} on {self.post.title[:20]}"
 
 class Report(models.Model):
     CONTENT_TYPES = [

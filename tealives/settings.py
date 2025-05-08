@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 import dj_database_url
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -32,10 +33,11 @@ if IS_RENDER:
     DATABASES = {
     'default': dj_database_url.config(
         default=os.getenv("DATABASE_URL"),
-        conn_max_age=600,  # keeps DB connections open for reuse
+        conn_max_age=0,  # keeps DB connections open for reuse
         ssl_require=True   # important for Supabase (uses SSL)
     )
 }
+    CORS_ALLOW_ALL_ORIGINS = True
     
 else:
     ALLOWED_HOSTS = ['*']
@@ -47,8 +49,9 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+    CORS_ALLOW_ALL_ORIGINS = True
 
-
+DEBUG = True
 # Application definition
 
 INSTALLED_APPS = [
@@ -60,14 +63,15 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'core',
     'corsheaders',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -75,8 +79,21 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+CORS_EXPOSE_HEADERS = ['Authorization']
+
 
 ROOT_URLCONF = 'tealives.urls'
+
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,  # optional, explained below
+    'BLACKLIST_AFTER_ROTATION': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+}
 
 TEMPLATES = [
     {
@@ -149,7 +166,11 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+        'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10
 }
 
-CORS_ALLOW_ALL_ORIGINS = True  # for dev only!
-#IN Production
+  # for dev only!
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # dev only
+DEFAULT_FROM_EMAIL = 'noreply@tealives.com'
