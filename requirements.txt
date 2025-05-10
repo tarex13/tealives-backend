@@ -34,3 +34,7 @@ virtualenv==20.29.2
 Werkzeug==3.1.3
 whitenoise==6.9.0
 Pillow
+django-cloudinary-storage
+cloudinary
+channels
+channels_redis

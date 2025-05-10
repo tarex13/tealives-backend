@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from cloudinary.models import CloudinaryField
 
 
 
@@ -18,7 +19,7 @@ class User(AbstractUser):
     is_moderator = models.BooleanField(default=False)
     xp = models.IntegerField(default=0)
     bio = models.TextField(blank=True)
-    profile_image = models.ImageField(upload_to='profile/')
+    profile_image = CloudinaryField('image', blank=True, null=True)
     saved_listings = models.ManyToManyField('MarketplaceItem', blank=True, related_name='saved_by_users')
 
 
@@ -36,10 +37,11 @@ class Feedback(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     type = models.CharField(max_length=20, choices=FEEDBACK_TYPES)
     content = models.TextField()
+    email = models.EmailField(blank=True, null=True)  # Add this line to store optional email
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f'{self.get_type_display()} - {self.content[:40]}'    
+        return f'{self.get_type_display()} - {self.content[:40]}'   
 
 class Group(models.Model):
     name = models.CharField(max_length=100)
@@ -52,7 +54,22 @@ class Group(models.Model):
 
     def __str__(self):
         return self.name
+    class Meta:
+        ordering = ['created_by']
 
+class GroupChat(models.Model):
+    name = models.CharField(max_length=100)
+    members = models.ManyToManyField(User, related_name='group_chats')
+    created_at = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        ordering = ['created_at']
+
+class GroupMessage(models.Model):
+    group = models.ForeignKey(GroupChat, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    sent_at = models.DateTimeField(auto_now_add=True)
+    read_by = models.ManyToManyField(User, related_name='read_group_messages', blank=True)
 
 
 class Post(models.Model):
@@ -62,17 +79,22 @@ class Post(models.Model):
         ('question', 'Question'),
         ('rant', 'Rant'),
     ]
-    reactions = models.JSONField(default=dict)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='posts')
     title = models.CharField(max_length=255)
     content = models.TextField()
     post_type = models.CharField(max_length=20, choices=POST_TYPES)
     city = models.CharField(max_length=50)  # duplicate for filtering speed
     anonymous = models.BooleanField(default=False)
+    comment_count = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.title
+    
+class PollOption(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='poll_options')
+    text = models.CharField(max_length=255)
+    votes = models.ManyToManyField(User, blank=True, related_name='voted_options')
     
 class Event(models.Model):
     host = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -92,12 +114,12 @@ class Event(models.Model):
 # models.py
 class Reaction(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    post = models.ForeignKey('Post', on_delete=models.CASCADE, related_name='reactions')
-    emoji = models.CharField(max_length=10)  # e.g. "👍", "🔥", etc.
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='reactions')
+    emoji = models.CharField(max_length=10)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('user', 'post', 'emoji')  # Prevent duplicate reactions
+        unique_together = ('user', 'post', 'emoji')
         
 class MarketplaceItem(models.Model):
     CONDITION_CHOICES = [
@@ -106,43 +128,35 @@ class MarketplaceItem(models.Model):
         ('fair', 'Fair'),
     ]
 
+    DELIVERY_CHOICES = [
+        ('pickup', 'Pickup'),
+        ('dropoff', 'Drop-off'),
+        ('shipping', 'Shipping'),
+        ('meetup', 'Meet in Public'),
+    ]
+
     seller = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     description = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     category = models.CharField(max_length=100)
-    image = models.ImageField(upload_to='marketplace/')
-    is_swappable = models.BooleanField(default=False)
-    swapp_options = models.JSONField(blank=True, null=True)  # list of items they'd accept
-    status = models.CharField(max_length=20, default='available')  # sold, traded, etc.
+    delivery_options = models.CharField(max_length=50, choices=DELIVERY_CHOICES, default='pickup')
+    delivery_note = models.TextField(blank=True, null=True)
     condition = models.CharField(max_length=20, choices=CONDITION_CHOICES, default='used')
-    listing_location = models.CharField(max_length=100)
+    status = models.CharField(max_length=20, default='available')
+    city = models.CharField(max_length=50)
     expiry_date = models.DateField(null=True, blank=True)
     views_count = models.PositiveIntegerField(default=0)
-    saved_by = models.ManyToManyField(
-    'core.User',
-    related_name='saved_items',
-    blank=True
-)
-    DELIVERY_CHOICES = [
-    ('pickup', 'Local Pickup'),
-    ('dropoff', 'Drop-off Available'),
-    ('shipping', 'Shipping'),
-    ('meetup', 'Meet in Public'),
-]
-
-    delivery_options = models.CharField(
-        max_length=50,
-        choices=DELIVERY_CHOICES,
-        default='pickup'
-    )
-
-    delivery_note = models.TextField(blank=True, null=True)
+    saved_by = models.ManyToManyField('core.User', related_name='saved_items', blank=True)
     
-    swapp_wishlist = models.TextField(blank=True, null=True)
-
     def __str__(self):
         return self.title
+
+
+class MarketplaceMedia(models.Model):
+    item = models.ForeignKey('MarketplaceItem', related_name='media', on_delete=models.CASCADE)
+    file = CloudinaryField('file', folder='marketplace/media/')
+    is_video = models.BooleanField(default=False)
 
 class Message(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')

@@ -61,11 +61,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'cloudinary',
+    'cloudinary_storage',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'core',
     'corsheaders',
+    'channels',
+    'tealives',
 ]
 
 MIDDLEWARE = [
@@ -80,7 +84,13 @@ MIDDLEWARE = [
 ]
 
 CORS_EXPOSE_HEADERS = ['Authorization']
-
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': 'dflkxko9o',
+    'API_KEY': '363146956671547',
+    'API_SECRET': '16Zw-z6liTu0d8zUr96uDlsFfvI',
+}
+MEDIA_URL = '/media/'
 
 ROOT_URLCONF = 'tealives.urls'
 
@@ -112,7 +122,15 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'tealives.wsgi.application'
-
+ASGI_APPLICATION = 'tealives.asgi.application'
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [('127.0.0.1', 6379)],
+        },
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -154,13 +172,22 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+#CLOUDINARY_STORAGE = {
+#    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
+#    'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
+#    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
+#}
+
+CSRF_TRUSTED_ORIGINS = ['http://localhost:5173', 'https://your-production-domain.com']
+
+
+STATIC_URL = 'static/'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
